@@ -890,12 +890,22 @@ async function openSpot(s) {
 }
 
 // リポジトリ同梱の写真を表示（サーバー不要）
+// 実際に読み込める画像だけを対象にする（SPOTS の枚数と実ファイル数がずれてもOK）
 function openGallery(title, photos) {
   document.getElementById('lbTitle').textContent = title;
-  lbPhotos = (photos || []).slice();
-  lbIndex = 0;
   document.getElementById('lightbox').classList.add('show');
+  lbPhotos = [];
+  lbIndex = 0;
   renderLb();
+  (photos || []).forEach((src, i) => {
+    const probe = new Image();
+    probe.onload = () => {
+      lbPhotos.push(src);
+      lbPhotos.sort((a, b) => (photos.indexOf(a) - photos.indexOf(b)));
+      if (lbIndex === 0) renderLb();
+    };
+    probe.src = src;
+  });
 }
 
 // フロアビューアからの客室写真表示（eventに依存しない版）
