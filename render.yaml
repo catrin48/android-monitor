@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: android-monitor
+    runtime: static
+    buildCommand: ""
+    staticPublishPath: .
+    pullRequestPreviewsEnabled: false
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: "public, max-age=300"
+    routes:
+      - type: rewrite
+        source: /map
+        destination: /facility-map/facility-map.html
