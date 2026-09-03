@@ -713,18 +713,22 @@ body::before {
 // ============================================================
 //  スポット定義（フロアごと）
 //  x,y は画像に対する % 位置。
-//  type:'photo' → 客室写真（/api/room-photos/<room>）
-//  type:'pano'  → 360°画像（panoに equirectangular画像のパス）
+//  type:'gallery' → リポジトリ同梱の写真を表示（photos に相対パスの配列）★静的サイト向け
+//  type:'pano'    → 360°画像（pano に equirectangular画像のパス）
+//  type:'photo'   → 客室写真 API（/api/room-photos/<room>）※サーバー必須・キオスクでは非対応
 // ============================================================
 const SPOTS = {
   1: [],
-  2: [],
+  2: [
+    { x: 71, y: 76, label: 'フロント', type: 'gallery',
+      photos: ['photos/front/1.jpg', 'photos/front/2.jpg', 'photos/front/3.jpg'] }
+  ],
   3: [],
   4: [],
   5: [
     { x: 80, y: 84, label: '516号室', type: 'photo', room: '516' }
     // 例：360°を追加する場合
-    // { x: 50, y: 50, label: 'ロビー', type: 'pano', pano: '/room_picture/lobby/360.jpg' }
+    // { x: 50, y: 50, label: 'ロビー', type: 'pano', pano: 'photos/lobby/360.jpg' }
   ]
 };
 
@@ -819,6 +823,11 @@ function renderLb() {
     return;
   }
   img.style.display = 'block';
+  img.onerror = () => {
+    img.style.display = 'none';
+    count.textContent = '写真は準備中です';
+    prev.style.display = next.style.display = 'none';
+  };
   img.src = lbPhotos[lbIndex];
   count.textContent = (lbIndex + 1) + ' / ' + lbPhotos.length;
   const multi = lbPhotos.length > 1;
@@ -869,13 +878,24 @@ function closeFloorViewer() {
   document.getElementById('fv').classList.remove('show');
 }
 
-// スポットを開く（写真 or 360°）
+// スポットを開く（同梱ギャラリー / 360° / 客室写真API）
 async function openSpot(s) {
   if (s.type === 'pano' && s.pano) {
     openPano(s.label, s.pano);
+  } else if (s.type === 'gallery' && Array.isArray(s.photos)) {
+    openGallery(s.label, s.photos);
   } else if (s.type === 'photo' && s.room) {
     openRoomFromSpot(s.room);
   }
+}
+
+// リポジトリ同梱の写真を表示（サーバー不要）
+function openGallery(title, photos) {
+  document.getElementById('lbTitle').textContent = title;
+  lbPhotos = (photos || []).slice();
+  lbIndex = 0;
+  document.getElementById('lightbox').classList.add('show');
+  renderLb();
 }
 
 // フロアビューアからの客室写真表示（eventに依存しない版）
