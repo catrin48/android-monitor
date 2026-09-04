@@ -82,6 +82,7 @@ class MainActivity : Activity() {
             s.setSupportZoom(false)
             s.builtInZoomControls = false
             overScrollMode = View.OVER_SCROLL_NEVER
+            addJavascriptInterface(PhotoBridge(this@MainActivity), "KioskPhoto")
             webChromeClient = object : WebChromeClient() {
                 // Let the web page (記念撮影) use the camera without a system prompt.
                 override fun onPermissionRequest(request: PermissionRequest) {

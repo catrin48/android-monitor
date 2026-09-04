@@ -97,7 +97,7 @@ body{
 <div class="bar" id="bar">
   <button class="btn ghost" id="retake" hidden>とりなおす</button>
   <button class="shutter" id="shutter" aria-label="撮影"></button>
-  <button class="btn ghost" id="done" hidden>このまま</button>
+  <button class="btn ghost" id="save" hidden>保存する</button>
 </div>
 
 <canvas id="canvas" hidden></canvas>
@@ -111,7 +111,7 @@ const flash = document.getElementById('flash');
 const err = document.getElementById('err');
 const shutter = document.getElementById('shutter');
 const retake = document.getElementById('retake');
-const done = document.getElementById('done');
+const saveBtn = document.getElementById('save');
 const canvas = document.getElementById('canvas');
 
 let stream = null;
@@ -178,7 +178,7 @@ async function capture(){
 
   shutter.hidden = true;
   retake.hidden = false;
-  done.hidden = false;
+  saveBtn.hidden = false;
   busy = false;
 }
 
@@ -187,18 +187,47 @@ function reset(){
   shot.removeAttribute('src');
   shutter.hidden = false;
   retake.hidden = true;
-  done.hidden = true;
+  saveBtn.hidden = true;
+  hint.textContent = 'カメラの前に立ってください';
   hint.hidden = false;
+}
+
+function flashHint(msg){
+  hint.textContent = msg;
+  hint.hidden = false;
+}
+
+const nativePhoto =
+  (typeof window.KioskPhoto !== 'undefined' && window.KioskPhoto &&
+   typeof window.KioskPhoto.savePhoto === 'function') ? window.KioskPhoto : null;
+
+function saveCurrent(){
+  const data = shot.getAttribute('src');
+  if(!data){ return; }
+  saveBtn.disabled = true;
+
+  if(nativePhoto){
+    let ok = false;
+    try{ ok = nativePhoto.savePhoto(data); }catch(e){ ok = false; }
+    flashHint(ok ? '保存しました' : '保存できませんでした');
+  }else{
+    // キオスク外（通常ブラウザ）ではダウンロードを試す
+    try{
+      const a = document.createElement('a');
+      a.href = data;
+      a.download = 'hanatsubaki_' + Date.now() + '.jpg';
+      document.body.appendChild(a); a.click(); a.remove();
+      flashHint('保存しました');
+    }catch(e){
+      flashHint('この端末では保存できません');
+    }
+  }
+  setTimeout(()=>{ saveBtn.disabled = false; reset(); }, 1400);
 }
 
 shutter.addEventListener('click', capture);
 retake.addEventListener('click', reset);
-done.addEventListener('click', ()=>{
-  // TODO: 花明かり連携（保存・印刷）。現状はプレビュー確定のみ。
-  hint.textContent = '撮影しました';
-  hint.hidden = false;
-  setTimeout(reset, 1200);
-});
+saveBtn.addEventListener('click', saveCurrent);
 
 document.addEventListener('dblclick', e=>e.preventDefault(), {passive:false});
 document.addEventListener('visibilitychange', ()=>{
