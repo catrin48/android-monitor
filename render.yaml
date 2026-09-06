@@ -6,9 +6,10 @@ services:
     staticPublishPath: .
     pullRequestPreviewsEnabled: false
     headers:
+      # HTML は毎回サーバーに確認（キオスクなので更新を即反映したい）
       - path: /*
         name: Cache-Control
-        value: "public, max-age=300"
+        value: "no-cache"
     routes:
       - type: rewrite
         source: /map
