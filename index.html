@@ -15,10 +15,11 @@ html,body{height:100%;}
 body{
   font-family:'Hiragino Mincho ProN','Yu Mincho','Noto Serif JP',serif;
   background:var(--washi); color:var(--ink);
-  display:flex; flex-direction:column; align-items:center;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  min-height:100%;
   padding:clamp(20px,4vw,56px);
   -webkit-font-smoothing:antialiased;
-  overflow:hidden;
+  overflow-x:hidden; overflow-y:auto;
 }
 body::before{
   content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
@@ -40,8 +41,11 @@ header p{font-size:clamp(.82rem,1.8vw,1rem); color:var(--ink2); margin-top:12px;
 .tiles{
   position:relative; z-index:1;
   display:grid; gap:clamp(16px,2.6vw,30px);
-  grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
-  width:100%; max-width:1000px;
+  grid-template-columns:repeat(2,1fr);
+  width:100%; max-width:860px;
+}
+@media (max-width:560px){
+  .tiles{grid-template-columns:1fr;}
 }
 .tile{
   display:flex; flex-direction:column; align-items:center; justify-content:center;

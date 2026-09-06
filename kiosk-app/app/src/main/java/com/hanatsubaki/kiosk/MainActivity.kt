@@ -1,9 +1,9 @@
 package com.hanatsubaki.kiosk
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.ActivityManager
+import android.app.KeyguardManager
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
@@ -16,7 +16,6 @@ import android.os.Handler
 import android.os.Looper
 import android.util.TypedValue
 import android.view.Gravity
-import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
@@ -34,8 +33,12 @@ class MainActivity : Activity() {
         /** State "0": the menu. Content is updated on the server, not in the APK. */
         const val HOME_URL = "https://android-monitor.onrender.com/"
         private const val BAR_HEIGHT_DP = 56
-        private const val COMBO_HOLD_MS = 1200L
         private const val REAL_LAUNCHER = "com.android.launcher3"
+
+        // Admin exit: tap the メニュー button this many times in quick succession.
+        private const val ADMIN_TAPS = 7
+        private const val ADMIN_TAP_WINDOW_MS = 3000L
+        private const val HOME_DEBOUNCE_MS = 350L
     }
 
     private lateinit var webView: WebView
@@ -46,17 +49,10 @@ class MainActivity : Activity() {
 
     private var resetOnLoad = false
 
-    // Combo gesture: long-press 戻る + ホーム together -> leave the kiosk.
-    private var backDown = false
-    private var homeDown = false
-    private var comboFired = false
-    private val comboHandler = Handler(Looper.getMainLooper())
-    private val comboRunnable = Runnable {
-        if (backDown && homeDown) {
-            comboFired = true
-            exitToLauncher()
-        }
-    }
+    private val handler = Handler(Looper.getMainLooper())
+    private var homeTapCount = 0
+    private var firstHomeTapAt = 0L
+    private val goHomeRunnable = Runnable { onHome() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -141,10 +137,8 @@ class MainActivity : Activity() {
 
         setContentView(rootLayout)
 
-        backBtn.setOnClickListener { if (!comboFired) onBack() }
-        homeBtn.setOnClickListener { if (!comboFired) onHome() }
-        wireComboTouch(backBtn, isBack = true)
-        wireComboTouch(homeBtn, isBack = false)
+        backBtn.setOnClickListener { onBack() }
+        homeBtn.setOnClickListener { onHomeButtonTap() }
 
         if (savedInstanceState == null) {
             webView.loadUrl(HOME_URL)
@@ -199,6 +193,30 @@ class MainActivity : Activity() {
         // At state "0" -> do nothing (never leave the menu).
     }
 
+    /**
+     * Single tap -> back to state "0" (debounced).
+     * [ADMIN_TAPS] rapid taps -> leave the kiosk to the Android home screen.
+     */
+    private fun onHomeButtonTap() {
+        val now = System.currentTimeMillis()
+        if (now - firstHomeTapAt > ADMIN_TAP_WINDOW_MS) {
+            firstHomeTapAt = now
+            homeTapCount = 0
+        }
+        homeTapCount++
+
+        if (homeTapCount >= ADMIN_TAPS) {
+            homeTapCount = 0
+            handler.removeCallbacks(goHomeRunnable)
+            exitToLauncher()
+            return
+        }
+
+        // Defer the actual "go home" so a burst of admin taps doesn't reload 7 times.
+        handler.removeCallbacks(goHomeRunnable)
+        handler.postDelayed(goHomeRunnable, HOME_DEBOUNCE_MS)
+    }
+
     private fun onHome() {
         resetOnLoad = true
         webView.loadUrl(HOME_URL)
@@ -208,26 +226,6 @@ class MainActivity : Activity() {
         val canBack = webView.canGoBack()
         backBtn.isEnabled = canBack
         backBtn.alpha = if (canBack) 1f else 0.3f
-    }
-
-    @SuppressLint("ClickableViewAccessibility")
-    private fun wireComboTouch(v: View, isBack: Boolean) {
-        v.setOnTouchListener { _, e ->
-            when (e.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    if (isBack) backDown = true else homeDown = true
-                    if (backDown && homeDown) {
-                        comboFired = false
-                        comboHandler.postDelayed(comboRunnable, COMBO_HOLD_MS)
-                    }
-                }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    if (isBack) backDown = false else homeDown = false
-                    comboHandler.removeCallbacks(comboRunnable)
-                }
-            }
-            false // let normal click handling proceed
-        }
     }
 
     private fun hasCameraPermission(): Boolean =
@@ -285,17 +283,28 @@ class MainActivity : Activity() {
             )
     }
 
-    /** Combo gesture / admin exit: drop the kiosk lock and go to the real Android launcher. */
+    /**
+     * Admin exit: drop the kiosk lock and go to the Android home screen
+     * (the launcher, not the lock screen).
+     */
     private fun exitToLauncher() {
-        runCatching { stopLockTask() }
         if (dpm.isDeviceOwnerApp(packageName)) {
             runCatching { dpm.setStatusBarDisabled(admin, false) }
+            runCatching { dpm.setLockTaskPackages(admin, emptyArray()) }
             runCatching { dpm.clearPackagePersistentPreferredActivities(admin, packageName) }
         }
+        runCatching { stopLockTask() }
+
+        // Get past a non-secure keyguard so we land on the launcher, not the lock screen.
+        val km = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+        if (km.isKeyguardLocked) {
+            runCatching { km.requestDismissKeyguard(this, null) }
+        }
+
         val explicit = Intent(Intent.ACTION_MAIN).apply {
             addCategory(Intent.CATEGORY_HOME)
             setPackage(REAL_LAUNCHER)
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
         }
         val generic = Intent(Intent.ACTION_MAIN).apply {
             addCategory(Intent.CATEGORY_HOME)
@@ -304,5 +313,6 @@ class MainActivity : Activity() {
         runCatching { startActivity(explicit) }.onFailure {
             runCatching { startActivity(generic) }
         }
+        finish()
     }
 }
