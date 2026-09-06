@@ -44,11 +44,10 @@ header p{font-size:clamp(.82rem,1.8vw,1rem); color:var(--ink2); margin-top:12px;
 .tiles{
   position:relative; z-index:1;
   display:grid; gap:clamp(16px,2.6vw,30px);
-  grid-template-columns:repeat(2,1fr);
+  /* タイルが増えたら自動で最大2列（2×2）に並ぶ。今は記念撮影のみ＝中央1枚 */
+  grid-template-columns:repeat(auto-fit,minmax(260px,360px));
+  justify-content:center;
   width:100%; max-width:860px;
-}
-@media (max-width:560px){
-  .tiles{grid-template-columns:1fr;}
 }
 .tile{
   display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -85,6 +84,15 @@ footer{
 </header>
 
 <main class="tiles">
+  <a class="tile" href="photo/">
+    <span class="ico">📷</span>
+    <span class="ja">記念撮影</span>
+    <span class="en">PHOTO</span>
+  </a>
+
+  <!-- 当面は記念撮影のみ表示。下のタイルは準備が整ったら復活させる。
+       （ページ自体は残してある: facility-map/, 温度システムは外部URL, ゲームは未実装）
+
   <a class="tile" href="facility-map/facility-map.html">
     <span class="ico">🗺️</span>
     <span class="ja">館内マップ</span>
@@ -97,17 +105,12 @@ footer{
     <span class="en">ONSEN &amp; SAUNA</span>
   </a>
 
-  <a class="tile" href="photo/">
-    <span class="ico">📷</span>
-    <span class="ja">記念撮影</span>
-    <span class="en">PHOTO</span>
-  </a>
-
   <a class="tile soon" href="#" aria-disabled="true">
     <span class="ico">🎲</span>
     <span class="ja">ゲーム</span>
     <span class="en">GAMES</span>
   </a>
+  -->
 </main>
 
 <div class="spacer"></div>
