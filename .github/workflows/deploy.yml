@@ -1,0 +1,24 @@
+name: Deploy to Render
+
+# main への push で Render のデプロイフックを叩く。
+# Render 側の Auto-Deploy が効かない場合の保険。
+# 事前に GitHub リポジトリの Settings → Secrets and variables → Actions で
+#   RENDER_DEPLOY_HOOK = Render の Deploy Hook URL
+# を登録しておくこと。
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Render deploy hook
+        run: |
+          if [ -z "${{ secrets.RENDER_DEPLOY_HOOK }}" ]; then
+            echo "RENDER_DEPLOY_HOOK secret is not set" >&2
+            exit 1
+          fi
+          curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
