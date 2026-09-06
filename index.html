@@ -15,19 +15,22 @@ html,body{height:100%;}
 body{
   font-family:'Hiragino Mincho ProN','Yu Mincho','Noto Serif JP',serif;
   background:var(--washi); color:var(--ink);
-  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  /* 上詰め。中身が画面より高くても上（見出し）が切れず、下方向にスクロールできる */
+  display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
   min-height:100%;
-  padding:clamp(20px,4vw,56px);
+  padding:clamp(16px,3.5vh,40px) clamp(20px,4vw,56px);
   -webkit-font-smoothing:antialiased;
   overflow-x:hidden; overflow-y:auto;
 }
+/* 中身が収まるときだけ、上下の余白を均等にして中央寄せに見せる */
+.spacer{flex:1 1 auto; min-height:0;}
 body::before{
   content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
   background-image:
     radial-gradient(circle at 18% 25%, rgba(176,141,87,.05) 0, transparent 42%),
     radial-gradient(circle at 82% 78%, rgba(54,71,107,.05) 0, transparent 42%);
 }
-header{text-align:center; position:relative; z-index:1; margin-bottom:clamp(24px,5vh,56px);}
+header{text-align:center; position:relative; z-index:1; margin-bottom:clamp(18px,3.5vh,40px);}
 header .eyebrow{
   font-size:clamp(.72rem,1.6vw,.9rem); letter-spacing:.42em; color:var(--gold-d);
 }
@@ -52,8 +55,8 @@ header p{font-size:clamp(.82rem,1.8vw,1rem); color:var(--ink2); margin-top:12px;
   gap:14px; text-decoration:none; color:var(--ink);
   background:#fffdf8; border:1px solid var(--line); border-radius:18px;
   box-shadow:var(--shadow);
-  padding:clamp(24px,4vw,44px) 20px;
-  min-height:clamp(160px,24vh,220px);
+  padding:clamp(20px,3.2vw,40px) 20px;
+  min-height:clamp(140px,20vh,190px);
   transition:transform .12s ease, box-shadow .12s ease;
   -webkit-tap-highlight-color:transparent;
 }
@@ -65,12 +68,14 @@ header p{font-size:clamp(.82rem,1.8vw,1rem); color:var(--ink2); margin-top:12px;
 .tile.soon .en::after{content:' — 準備中';}
 
 footer{
-  position:relative; z-index:1; margin-top:auto; padding-top:28px;
+  position:relative; z-index:1; padding-top:24px;
   font-size:clamp(.68rem,1.4vw,.78rem); color:var(--ink2); letter-spacing:.08em; text-align:center;
 }
 </style>
 </head>
 <body>
+
+<div class="spacer"></div>
 
 <header>
   <div class="eyebrow">YAMANAKA ONSEN</div>
@@ -104,6 +109,8 @@ footer{
     <span class="en">GAMES</span>
   </a>
 </main>
+
+<div class="spacer"></div>
 
 <footer>山中温泉 花つばき　石川県加賀市山中温泉</footer>
 
